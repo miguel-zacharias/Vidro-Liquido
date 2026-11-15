@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Liquid Glass Lab v2</title>
+<style>
+*{box-sizing:border-box;margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,system-ui,sans-serif;color:#fff;background:#0a0a1c;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+/* fundo com conteúdo nítido: a refração só aparece se houver detalhes atrás do vidro */
+.bg{position:fixed;inset:0;z-index:-1;background:
+  radial-gradient(40vmax 40vmax at 15% 10%,#ff5fa2cc,transparent 70%),
+  radial-gradient(40vmax 40vmax at 85% 35%,#2f8bffcc,transparent 70%),
+  radial-gradient(40vmax 40vmax at 40% 95%,#ffb347aa,transparent 70%),#10102a}
+.bg::after{content:"";position:absolute;inset:0;opacity:.35;
+  background:repeating-linear-gradient(90deg,#fff 0 2px,transparent 2px 48px),repeating-linear-gradient(0deg,#fff 0 2px,transparent 2px 48px)}
+.words{position:absolute;inset:0;overflow:hidden;font:800 clamp(60px,12vw,150px)/.95 -apple-system,system-ui,sans-serif;letter-spacing:-.05em;color:#ffffff22;padding:5vh 4vw;word-break:break-all;user-select:none}
+main{max-width:980px;margin:0 auto;padding:120px 20px 100px;display:grid;gap:90px}
+h1{font-size:clamp(46px,9vw,100px);letter-spacing:-.045em;line-height:1;text-align:center;text-shadow:0 8px 40px #0006}
+.sub{text-align:center;color:#ffffffbb;margin-top:14px;font-size:clamp(16px,2vw,20px)}
+h2{font-size:30px;letter-spacing:-.03em;margin-bottom:6px}.lead{color:#ffffffaa;margin-bottom:22px;line-height:1.5}
+.row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:30px}
+
+/* ===== material base (fallback sem refração) ===== */
+.lg{position:relative;isolation:isolate;color:#fff;
+  background:linear-gradient(135deg,#ffffff30,#ffffff10);
+  -webkit-backdrop-filter:blur(12px) saturate(1.6);backdrop-filter:blur(12px) saturate(1.6);
+  box-shadow:inset 0 1px 0 #ffffffaa,inset 0 -1px 0 #ffffff44,inset 0 0 18px #ffffff22,0 12px 32px -14px #000a}
+.lg::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.2px;pointer-events:none;z-index:3;
+  background:linear-gradient(135deg,#fffffff2,#fff0 30%,#fff0 65%,#ffffffb3);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.lg::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
+  background:var(--spec) 0 0/100% 100% no-repeat;opacity:var(--specA,.65)}
+.lg>*{position:relative;z-index:2}
+.btn{font:600 15px inherit;font-family:inherit;border:0;cursor:pointer;padding:15px 28px;border-radius:999px;transition:transform .45s cubic-bezier(.2,1.4,.4,1)}
+.btn:hover{transform:scale(1.07)}.btn:active{transform:scale(.93)}
+nav{position:fixed;top:16px;left:50%;translate:-50% 0;z-index:50;display:flex;gap:4px;padding:6px;border-radius:999px}
+nav a{color:#fff;text-decoration:none;font-size:14px;font-weight:500;padding:9px 16px;border-radius:999px}
+nav a:hover{background:#ffffff2e}
+.panel{border-radius:40px;padding:32px;display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.panel p{color:#ffffffcc;line-height:1.5;font-size:15px}
+.ctl label{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:6px}
+.ctl{margin-bottom:14px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:none;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:9px;background:#ffffff33}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:38px;height:26px;margin-top:-9px;border-radius:99px;background:#fff;box-shadow:0 3px 10px #0006}
+input[type=range]::-moz-range-thumb{width:38px;height:26px;border:0;border-radius:99px;background:#fff}
+.stage{position:relative;height:440px;border-radius:40px;overflow:hidden;background:#ffffff0a;border:1px solid #ffffff1a;touch-action:none}
+.stage .words{color:#ffffff30;font-size:90px}
+.drag{position:absolute;cursor:grab;display:grid;place-items:center;font-weight:600;touch-action:none}
+.drag:active{cursor:grabbing}
+.tabs{display:inline-flex;padding:6px;gap:4px;border-radius:999px}
+.tabs button{border:0;background:none;color:#fff;font:600 14px inherit;font-family:inherit;padding:10px 20px;border-radius:999px;cursor:pointer;transition:background .3s}
+.tabs button[aria-selected=true]{background:#ffffff38;box-shadow:inset 0 1px 0 #fff8}
+code{font-size:12px;background:#0004;padding:2px 6px;border-radius:6px}
+@media(max-width:760px){.panel{grid-template-columns:1fr}nav a{padding:9px 11px;font-size:13px}}
+</style>
+</head>
+<body>
+<div class="bg"><div class="words">LIQUID GLASS REFRACTS EVERYTHING BEHIND IT LIQUID GLASS REFRACTS EVERYTHING BEHIND IT LIQUID GLASS</div></div>
+
+<nav class="lg" data-glass data-radius="999"><a href="#a">Início</a><a href="#b">Painel</a><a href="#c">Arraste</a></nav>
+
+<main>
+  <header id="a" style="padding-top:8vh">
+    <h1>Liquid Glass Lab</h1>
+    <p class="sub">v2 · refração calculada por elemento, a partir do tamanho e do raio de cada um</p>
+    <div class="row">
+      <button class="btn lg" data-glass data-radius="999">Padrão</button>
+      <button class="btn lg" data-glass data-radius="999" data-bezel="0.9">Lente grossa</button>
+      <button class="btn lg" data-glass data-radius="999" data-bezel="0.3">Vidro fino</button>
+      <div class="tabs lg" data-glass data-radius="999" role="tablist">
+        <button aria-selected="true">Hoje</button><button>Semana</button><button>Mês</button>
+      </div>
+    </div>
+  </header>
+
+  <section id="b">
+    <div class="panel lg" data-glass data-radius="40" data-bezel="0.5">
+      <div><h2>Motor de refração</h2>
+        <p>Cada elemento com <code>data-glass</code> ganha seu próprio filtro: o script mede largura, altura e raio, calcula a normal da borda em cada pixel e gera um mapa de deslocamento e um mapa de reflexo.</p>
+        <p style="margin-top:12px">Mude os valores e todo o vidro da página é recalculado ao vivo.</p></div>
+      <div>
+        <div class="ctl"><label>Força da refração <output></output></label><input type="range" id="s-refr" min="0" max="80" value="22"></div>
+        <div class="ctl"><label>Largura da borda curva <output></output></label><input type="range" id="s-bezel" min="10" max="100" value="50"></div>
+        <div class="ctl"><label>Brilho especular <output></output></label><input type="range" id="s-spec" min="0" max="100" value="65"></div>
+        <div class="ctl"><label>Desfoque <output></output></label><input type="range" id="s-blur" min="0" max="30" value="6"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="c">
+    <h2>Arraste o vidro</h2><p class="lead">Cada peça refrata o texto e a grade atrás dela, e o reflexo muda de lugar conforme a borda.</p>
+    <div class="stage" id="stage">
+      <div class="words">LIQUID GLASS LIQUID GLASS LIQUID</div>
+      <div class="drag lg" data-glass data-radius="999" style="left:8%;top:30%;width:260px;height:110px">pílula</div>
+      <div class="drag lg" data-glass data-radius="999" style="left:55%;top:12%;width:170px;height:170px">orbe</div>
+      <div class="drag lg" data-glass data-radius="36" style="left:38%;top:58%;width:300px;height:150px">cartão</div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* =====================================================================
+   LIQUID GLASS ENGINE — copie este bloco para os seus projetos.
+   Uso: <div data-glass data-radius="40" data-bezel="0.5">  +  LiquidGlass.init()
+   Requer a classe .lg (CSS acima) e funciona de verdade em Chromium.
+   ===================================================================== */
+const LiquidGlass=(()=>{
+  const cfg={refr:22,bezel:.5,spec:.65,blur:6};
+  const ok=/Chrome|Chromium|Edg/.test(navigator.userAgent)&&!/Firefox/.test(navigator.userAgent);
+  const svgNS='http://www.w3.org/2000/svg';
+  const defs=document.createElementNS(svgNS,'svg');
+  defs.setAttribute('width',0);defs.setAttribute('height',0);defs.style.position='absolute';
+  document.body.prepend(defs);
+  const items=[];let uid=0;
+
+  /* perfil da superfície: convexo (squircle). t=0 na borda, t=1 no fim do bisel */
+  const slope=t=>{const u=1-t;return u*u*u*u}; // inclinação cai suavemente para o centro
+
+  function maps(w,h,r,bez){
+    const D=document.createElement('canvas'),S=document.createElement('canvas');
+    D.width=S.width=w;D.height=S.height=h;
+    const dc=D.getContext('2d'),sc=S.getContext('2d');
+    const di=dc.createImageData(w,h),si=sc.createImageData(w,h);
+    const hw=w/2,hh=h/2,rr=Math.min(r,hw,hh),bz=Math.max(2,Math.min(bez*Math.min(hw,hh),Math.min(hw,hh)));
+    const L=[-.62,-.78]; // direção da luz (canto superior esquerdo)
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const px=x+.5-hw,py=y+.5-hh;
+      const qx=Math.abs(px)-(hw-rr),qy=Math.abs(py)-(hh-rr);
+      const ox=Math.max(qx,0),oy=Math.max(qy,0),len=Math.hypot(ox,oy);
+      const dist=-(len+Math.min(Math.max(qx,qy),0)-rr); // distância à borda (dentro >0)
+      let nx,ny;
+      if(len>0){nx=Math.sign(px)*ox/len;ny=Math.sign(py)*oy/len}
+      else if(qx>qy){nx=Math.sign(px);ny=0}else{nx=0;ny=Math.sign(py)}
+      const i=(y*w+x)*4;
+      let m=0,sp=0;
+      if(dist>=0&&dist<bz){const t=dist/bz;m=slope(t);
+        // reflexo: normal da borda versus direção da luz, forte rente à borda
+        const d=nx*L[0]+ny*L[1];
+        sp=Math.pow(Math.max(0,Math.abs(d)),1.4)*Math.pow(1-t,3);
+        if(d<0)sp*=.55; // lado oposto reflete menos
+      }
+      // sinal: a borda mostra conteúdo vindo de fora, como numa lente convexa
+      di.data[i]=128+127*m*nx;di.data[i+1]=128+127*m*ny;di.data[i+2]=128;di.data[i+3]=255;
+      const v=Math.min(255,sp*255*2);
+      si.data[i]=si.data[i+1]=si.data[i+2]=255;si.data[i+3]=v;
+    }
+    dc.putImageData(di,0,0);sc.putImageData(si,0,0);
+    return [D.toDataURL(),S.toDataURL()];
+  }
+
+  function build(it){
+    const {el,f}=it;const w=Math.round(el.offsetWidth),h=Math.round(el.offsetHeight);
+    if(!w||!h)return;
+    const r=parseFloat(el.dataset.radius||24),bez=parseFloat(el.dataset.bezel||cfg.bezel);
+    const [dm,sm]=maps(w,h,r,bez);
+    f.innerHTML=`<feImage href="${dm}" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="m"/>
+      <feDisplacementMap in="SourceGraphic" in2="m" scale="${cfg.refr*2}" xChannelSelector="R" yChannelSelector="G"/>`;
+    el.style.setProperty('--spec',`url(${sm})`);el.style.setProperty('--specA',cfg.spec);
+    if(ok)el.style.backdropFilter=el.style.webkitBackdropFilter=`url(#${it.id}) blur(${cfg.blur}px) saturate(1.6) brightness(1.06)`;
+  }
+
+  function add(el){
+    const id='lgf'+(uid++);
+    const f=document.createElementNS(svgNS,'filter');
+    f.id=id;
+    f.setAttribute('color-interpolation-filters','sRGB');
+    defs.appendChild(f);
+    const it={el,f,id};items.push(it);
+    
+    el.style.borderRadius=(el.dataset.radius||24)+'px';
+    new ResizeObserver(()=>build(it)).observe(el);
+    build(it);
+  }
+  return{
+    init(root=document){root.querySelectorAll('[data-glass]').forEach(add)},
+    set(o){Object.assign(cfg,o);items.forEach(build)},
+    supported:ok
+  };
+})();
+LiquidGlass.init();
+
+/* ---------- controles ao vivo ---------- */
+const q=id=>document.getElementById(id);
+const map={'s-refr':v=>LiquidGlass.set({refr:+v}),'s-bezel':v=>LiquidGlass.set({bezel:v/100}),
+  's-spec':v=>LiquidGlass.set({spec:v/100}),'s-blur':v=>LiquidGlass.set({blur:+v})};
+let raf;
+Object.keys(map).forEach(id=>{const el=q(id),o=el.parentNode.querySelector('output');
+  const u=()=>{o.textContent=el.value;cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>map[id](el.value))};
+  el.addEventListener('input',u);o.textContent=el.value});
+if(!LiquidGlass.supported)document.querySelector('.sub').textContent+=' — (refração real requer Chrome/Edge; aqui você vê o fallback com blur)';
+
+/* ---------- arrastar peças ---------- */
+document.querySelectorAll('.drag').forEach(el=>{
+  let ox,oy;
+  el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);ox=e.offsetX;oy=e.offsetY;el.style.transition='none'});
+  el.addEventListener('pointermove',e=>{if(!el.hasPointerCapture(e.pointerId))return;
+    const p=q('stage').getBoundingClientRect();
+    el.style.left=Math.max(0,Math.min(p.width-el.offsetWidth,e.clientX-p.left-ox))+'px';
+    el.style.top=Math.max(0,Math.min(p.height-el.offsetHeight,e.clientY-p.top-oy))+'px'});
+});
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected',x===b));
+});
+</script>
+</body>
+</html>

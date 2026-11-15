@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Liquid Glass Lab</title>
+<style>
+:root{
+  --alpha:.14; --blur:10px; --glow:.6; --refr:40;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);color:#fff;background:#0b0b1a;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* ---------- Fundo vivo ---------- */
+.bg{position:fixed;inset:0;z-index:-1;overflow:hidden;background:radial-gradient(120% 90% at 20% 0%,#2b1b6b,#0b0b1a 60%)}
+.blob{position:absolute;border-radius:50%;filter:blur(8px);animation:float 18s ease-in-out infinite alternate}
+.b1{width:46vmax;height:46vmax;left:-10vmax;top:-8vmax;background:radial-gradient(circle at 30% 30%,#ff5fa2,#7a2cff 70%)}
+.b2{width:38vmax;height:38vmax;right:-8vmax;top:20vh;background:radial-gradient(circle at 60% 40%,#35e0ff,#1b5cff 70%);animation-duration:23s}
+.b3{width:34vmax;height:34vmax;left:25vw;bottom:-14vmax;background:radial-gradient(circle at 40% 40%,#ffb347,#ff3d6e 70%);animation-duration:27s}
+.b4{width:14vmax;height:14vmax;left:55vw;top:8vh;background:radial-gradient(circle,#b6ff6a,#14c98a 70%);animation-duration:15s}
+@keyframes float{to{transform:translate(6vmax,-5vmax) scale(1.12) rotate(30deg)}}
+.grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.06;
+  background-image:repeating-linear-gradient(90deg,#fff 0 1px,transparent 1px 64px),repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 64px)}
+
+/* ---------- Material Liquid Glass ---------- */
+.glass{
+  position:relative;isolation:isolate;
+  background:linear-gradient(135deg,rgba(255,255,255,calc(var(--alpha) + .08)),rgba(255,255,255,var(--alpha)) 40%,rgba(255,255,255,calc(var(--alpha) * .5)));
+  -webkit-backdrop-filter:blur(var(--blur)) saturate(1.8) brightness(1.08);
+  backdrop-filter:blur(var(--blur)) saturate(1.8) brightness(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,calc(.7*var(--glow))),
+    inset 0 -1px 0 rgba(255,255,255,calc(.25*var(--glow))),
+    inset 1px 0 0 rgba(255,255,255,calc(.3*var(--glow))),
+    inset 0 0 22px rgba(255,255,255,calc(.12*var(--glow))),
+    inset 0 -14px 24px -10px rgba(120,160,255,calc(.28*var(--glow))),
+    0 10px 30px -12px rgba(0,0,20,.45);
+  transition:transform .5s cubic-bezier(.2,.9,.3,1.2),box-shadow .3s;
+}
+.refract .glass{ -webkit-backdrop-filter:url(#lg) blur(calc(var(--blur) * .6)) saturate(1.8) brightness(1.08); backdrop-filter:url(#lg) blur(calc(var(--blur) * .6)) saturate(1.8) brightness(1.08)}
+/* borda especular com máscara: luz entra pelo canto superior esquerdo e sai no inferior direito */
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.2px;pointer-events:none;z-index:2;
+  background:linear-gradient(135deg,rgba(255,255,255,calc(.95*var(--glow))),rgba(255,255,255,0) 30%,rgba(255,255,255,0) 65%,rgba(255,255,255,calc(.7*var(--glow))));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+/* brilho dinâmico que segue o ponteiro */
+.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:0;transition:opacity .3s;
+  background:radial-gradient(160px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,calc(.55*var(--glow))),rgba(255,255,255,0) 70%);mix-blend-mode:overlay}
+.glass:hover::after{opacity:1}
+.glass>*{position:relative;z-index:3}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .glass{background:rgba(40,40,80,.75)}
+}
+
+/* ---------- Layout ---------- */
+nav{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:4px;padding:6px;border-radius:999px;max-width:calc(100vw - 24px)}
+nav a{color:#fff;text-decoration:none;font-size:14px;font-weight:500;padding:9px 16px;border-radius:999px;transition:background .25s,transform .25s;white-space:nowrap}
+nav a:hover{background:rgba(255,255,255,.18)}
+nav a:active{transform:scale(.93)}
+nav a.on{background:rgba(255,255,255,.24);box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+section{max-width:1040px;margin:0 auto;padding:110px 20px 40px}
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:18px;padding-top:90px}
+h1{font-size:clamp(44px,9vw,104px);font-weight:700;letter-spacing:-.04em;line-height:1;
+  background:linear-gradient(180deg,#fff,rgba(255,255,255,.55));-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 6px 30px rgba(120,100,255,.4))}
+.sub{font-size:clamp(16px,2.2vw,21px);color:rgba(255,255,255,.75);max-width:520px;line-height:1.45}
+h2{font-size:clamp(26px,4vw,38px);letter-spacing:-.03em;margin-bottom:8px}
+.lead{color:rgba(255,255,255,.7);margin-bottom:28px;line-height:1.5}
+.row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+
+/* botões */
+.btn{font:600 15px var(--font);color:#fff;border:0;cursor:pointer;padding:14px 26px;border-radius:999px}
+.btn:hover{transform:scale(1.06)}
+.btn:active{transform:scale(.94)}
+.btn.clear{--alpha:.04}
+.btn.frost{--alpha:.3}
+.btn.tint{background:linear-gradient(135deg,rgba(90,140,255,.55),rgba(160,90,255,.35))}
+.btn.round{width:52px;height:52px;padding:0;font-size:20px}
+
+/* painel principal */
+.panel{border-radius:36px;padding:34px;display:grid;grid-template-columns:1.1fr 1fr;gap:30px}
+.panel h3{font-size:22px;letter-spacing:-.02em;margin-bottom:8px}
+.panel p{color:rgba(255,255,255,.75);line-height:1.5;font-size:15px}
+.controls{display:grid;gap:18px;align-content:start}
+.ctl label{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:8px;color:rgba(255,255,255,.85)}
+.ctl output{font-variant-numeric:tabular-nums;opacity:.7}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:9px;background:rgba(255,255,255,.2);box-shadow:inset 0 1px 3px rgba(0,0,0,.35)}
+input[type=range]::-moz-range-track{height:8px;border-radius:9px;background:rgba(255,255,255,.2)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:34px;height:24px;margin-top:-8px;border-radius:99px;
+  background:linear-gradient(180deg,#fff,#dfe6ff);box-shadow:0 3px 10px rgba(0,0,30,.45),inset 0 -2px 4px rgba(120,140,255,.4);transition:transform .2s}
+input[type=range]::-moz-range-thumb{width:34px;height:24px;border:0;border-radius:99px;background:#fff;box-shadow:0 3px 10px rgba(0,0,30,.45)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.15)}
+.toggle{display:flex;gap:10px;align-items:center;font-size:14px;font-weight:600}
+.sw{width:52px;height:32px;border-radius:99px;padding:3px;border:0;cursor:pointer;background:rgba(255,255,255,.2)}
+.sw i{display:block;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,30,.4);transition:transform .35s cubic-bezier(.3,1.5,.5,1)}
+.sw[aria-pressed=true]{background:rgba(70,220,130,.7)}
+.sw[aria-pressed=true] i{transform:translateX(20px)}
+
+/* cards flutuantes em camadas */
+.stack{position:relative;height:340px;margin-top:10px}
+.card{position:absolute;border-radius:28px;padding:22px;width:min(260px,70%);font-size:14px;color:rgba(255,255,255,.85)}
+.card b{display:block;font-size:18px;color:#fff;margin-bottom:6px;letter-spacing:-.02em}
+.c1{left:4%;top:20px;transform:rotate(-5deg);height:180px}
+.c2{left:30%;top:90px;transform:rotate(3deg);height:190px;z-index:2}
+.c3{right:4%;top:10px;transform:rotate(7deg);height:200px;z-index:3}
+.card:hover{transform:translateY(-12px) rotate(0) scale(1.04);z-index:9}
+.dot{width:42px;height:42px;border-radius:50%;margin-bottom:12px}
+
+/* lente */
+.playground{position:relative;height:420px;border-radius:36px;overflow:hidden;border:1px solid rgba(255,255,255,.12);touch-action:none;cursor:none;
+  background:linear-gradient(120deg,#12123a,#2c1650)}
+.playground .txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:800;font-size:clamp(40px,10vw,110px);letter-spacing:-.04em;line-height:.95;
+  background:repeating-linear-gradient(90deg,#ff5fa2 0 40px,#35e0ff 40px 80px);-webkit-background-clip:text;background-clip:text;color:transparent;user-select:none}
+.lens{position:absolute;left:0;top:0;width:170px;height:170px;border-radius:50%;pointer-events:none;will-change:transform;
+  --alpha:.04;box-shadow:inset 0 2px 1px rgba(255,255,255,.8),inset 0 -8px 18px rgba(120,180,255,.35),inset 0 0 30px rgba(255,255,255,.2),0 18px 40px -10px rgba(0,0,30,.6)}
+.lens::after{opacity:1;background:radial-gradient(70px circle at var(--mx,30%) var(--my,25%),rgba(255,255,255,.75),rgba(255,255,255,0) 70%);mix-blend-mode:soft-light}
+.hint{position:absolute;bottom:14px;width:100%;text-align:center;font-size:13px;color:rgba(255,255,255,.55)}
+
+/* comparação */
+.cmp{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:26px;border-radius:36px;overflow:hidden;
+  background:repeating-linear-gradient(45deg,#ff5fa2 0 22px,#2a1b6b 22px 44px)}
+.cmp::before{content:"Aa Bb Cc 123 Aa Bb Cc 123 Aa Bb Cc 123 Aa Bb Cc 123";position:absolute;inset:0;font:800 54px/1.1 var(--font);color:rgba(255,255,255,.9);padding:20px;word-break:break-all;pointer-events:none;mix-blend-mode:overlay}
+.cm{height:230px;border-radius:26px;padding:18px;display:flex;flex-direction:column;justify-content:flex-end;position:relative;z-index:2}
+.cm b{font-size:16px;letter-spacing:-.02em}
+.cm small{font-size:12.5px;color:rgba(255,255,255,.85);margin-top:4px;line-height:1.4}
+.k1{background:rgba(255,255,255,.35);box-shadow:0 4px 12px rgba(0,0,0,.3);border-radius:8px}
+.k2{background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.3);box-shadow:0 8px 32px rgba(0,0,0,.25)}
+footer{text-align:center;color:rgba(255,255,255,.45);font-size:13px;padding:60px 20px 120px}
+
+@media(max-width:760px){
+  .panel{grid-template-columns:1fr;padding:24px}
+  .cmp{grid-template-columns:1fr}
+  .cm{height:150px}
+  .stack{height:460px}
+  .c1{left:2%}.c2{left:18%;top:150px}.c3{right:2%;top:290px}
+  nav a{padding:9px 11px;font-size:13px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div>
+<div class="grain"></div>
+
+<!-- Filtro de refração: mapa de deslocamento com gradientes nas bordas -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="lg" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+    <feImage id="map" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="m"/>
+    <feDisplacementMap id="disp" in="SourceGraphic" in2="m" scale="40" xChannelSelector="R" yChannelSelector="B"/>
+  </filter>
+</svg>
+
+<nav class="glass" id="nav">
+  <a href="#top" class="on">Início</a><a href="#panel">Painel</a><a href="#cards">Camadas</a><a href="#lens">Lente</a><a href="#cmp">Comparar</a>
+</nav>
+
+<section class="hero" id="top">
+  <h1>Liquid Glass Lab</h1>
+  <p class="sub">Um estudo de vidro, luz e refração. Mova o ponteiro, toque, arraste.</p>
+  <div class="row">
+    <button class="btn glass">Padrão</button>
+    <button class="btn glass clear">Cristalino</button>
+    <button class="btn glass frost">Fosco</button>
+    <button class="btn glass tint">Tingido</button>
+    <button class="btn glass round" aria-label="Favorito">♡</button>
+  </div>
+</section>
+
+<section id="panel">
+  <div class="glass panel">
+    <div>
+      <h3>Material vivo</h3>
+      <p>O vidro reflete a luz do ponteiro, refrata o que está atrás e muda de brilho conforme a borda. Ajuste os parâmetros ao lado e veja tudo reagir em tempo real.</p>
+      <div class="toggle" style="margin-top:22px"><button class="sw" id="rtoggle" aria-pressed="true" aria-label="Refração"><i></i></button><span id="rlabel">Refração SVG ativa</span></div>
+    </div>
+    <div class="controls">
+      <div class="ctl"><label>Transparência <output id="o1"></output></label><input type="range" id="alpha" min="0" max="45" value="14"></div>
+      <div class="ctl"><label>Desfoque <output id="o2"></output></label><input type="range" id="blur" min="0" max="40" value="10"></div>
+      <div class="ctl"><label>Brilho <output id="o3"></output></label><input type="range" id="glow" min="0" max="100" value="60"></div>
+      <div class="ctl"><label>Refração <output id="o4"></output></label><input type="range" id="refr" min="0" max="120" value="40"></div>
+    </div>
+  </div>
+</section>
+
+<section id="cards">
+  <h2>Camadas</h2><p class="lead">Cards sobrepostos revelam uns aos outros através do vidro.</p>
+  <div class="stack">
+    <div class="glass card c1"><div class="dot" style="background:linear-gradient(135deg,#ff5fa2,#ffb347)"></div><b>Superfície</b>Camada mais próxima da luz.</div>
+    <div class="glass card c2"><div class="dot" style="background:linear-gradient(135deg,#35e0ff,#1b5cff)"></div><b>Profundidade</b>O que está atrás se curva na borda.</div>
+    <div class="glass card c3"><div class="dot" style="background:linear-gradient(135deg,#b6ff6a,#14c98a)"></div><b>Luz</b>Reflexos mudam conforme o ângulo.</div>
+  </div>
+</section>
+
+<section id="lens">
+  <h2>Lente</h2><p class="lead">Um disco de vidro segue o ponteiro, distorcendo e iluminando o texto.</p>
+  <div class="playground" id="pg"><div class="txt">GLASS<br>LIQUID</div><div class="glass lens" id="lensEl"></div><div class="hint">mova o mouse ou arraste o dedo</div></div>
+</section>
+
+<section id="cmp">
+  <h2>Comparação</h2><p class="lead">Três interpretações sobre o mesmo fundo.</p>
+  <div class="cmp">
+    <div class="cm k1"><b>Vidro convencional</b><small>Cor translúcida plana, sem desfoque, sem luz.</small></div>
+    <div class="cm k2"><b>Glassmorphism</b><small>Blur uniforme, borda fina. Bonito, mas estático.</small></div>
+    <div class="cm glass"><b>Liquid Glass</b><small>Refração nas bordas, brilho especular e luz que reage ao ponteiro.</small></div>
+  </div>
+</section>
+
+<footer>Liquid Glass Lab · estudo visual experimental</footer>
+
+<script>
+const root=document.documentElement, $=id=>document.getElementById(id);
+const ua=navigator.userAgent, chromium=/Chrome|Chromium|Edg/.test(ua)&&!/Firefox/.test(ua);
+let refrOn=chromium; // backdrop-filter:url() só funciona em Chromium
+root.classList.toggle('refract',refrOn);
+
+/* mapa de deslocamento (R = x, B = y), neutro no centro e inclinado nas bordas */
+const mapSVG=`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><defs>
+<linearGradient id="r" x1="0" x2="1"><stop offset="0" stop-color="#f00"/><stop offset=".22" stop-color="#800"/><stop offset=".78" stop-color="#800"/><stop offset="1" stop-color="#000"/></linearGradient>
+<linearGradient id="b" y1="0" y2="1" x1="0" x2="0"><stop offset="0" stop-color="#00f"/><stop offset=".22" stop-color="#008"/><stop offset=".78" stop-color="#008"/><stop offset="1" stop-color="#000"/></linearGradient></defs>
+<rect width="400" height="400" fill="#008000"/>
+<rect width="400" height="400" fill="url(#r)" style="mix-blend-mode:screen"/>
+<rect width="400" height="400" fill="url(#b)" style="mix-blend-mode:screen"/></svg>`;
+$('map').setAttribute('href','data:image/svg+xml;utf8,'+encodeURIComponent(mapSVG));
+
+/* controles */
+const bind=(id,out,fn)=>{const el=$(id);const u=()=>{fn(+el.value);$(out).textContent=el.value+(id==='blur'?'px':'%')};el.addEventListener('input',u);u()};
+bind('alpha','o1',v=>root.style.setProperty('--alpha',v/100));
+bind('blur','o2',v=>root.style.setProperty('--blur',v+'px'));
+bind('glow','o3',v=>root.style.setProperty('--glow',v/100));
+bind('refr','o4',v=>{root.style.setProperty('--refr',v);$('disp').setAttribute('scale',v)});
+const rt=$('rtoggle');
+if(!chromium){rt.disabled=true;rt.setAttribute('aria-pressed','false');$('rlabel').textContent='Refração indisponível neste navegador (usando blur)'}
+rt.onclick=()=>{refrOn=!refrOn;rt.setAttribute('aria-pressed',refrOn);root.classList.toggle('refract',refrOn);$('rlabel').textContent=refrOn?'Refração SVG ativa':'Refração desligada'};
+
+/* luz que segue o ponteiro em qualquer elemento .glass */
+document.addEventListener('pointermove',e=>{
+  document.querySelectorAll('.glass:not(.lens)').forEach(g=>{
+    const r=g.getBoundingClientRect();
+    g.style.setProperty('--mx',(e.clientX-r.left)+'px');
+    g.style.setProperty('--my',(e.clientY-r.top)+'px');
+  });
+});
+
+/* lente com inércia */
+const pg=$('pg'),lens=$('lensEl');
+let tx=0,ty=0,x=0,y=0,init=false;
+const setT=e=>{const r=pg.getBoundingClientRect();tx=e.clientX-r.left-85;ty=e.clientY-r.top-85;if(!init){x=tx;y=ty;init=true}};
+pg.addEventListener('pointermove',setT);pg.addEventListener('pointerdown',setT);
+(function loop(){
+  if(!init){const t=performance.now()/1000,r=pg.getBoundingClientRect();tx=r.width/2-85+Math.cos(t)*120;ty=r.height/2-85+Math.sin(t*1.3)*60}
+  const vx=tx-x,vy=ty-y;x+=vx*.14;y+=vy*.14;
+  const s=1+Math.min(.18,Math.hypot(vx,vy)/700); // estica levemente com a velocidade
+  lens.style.transform=`translate(${x}px,${y}px) scale(${s})`;
+  lens.style.setProperty('--mx',(30-vx*.2)+'%');lens.style.setProperty('--my',(25-vy*.2)+'%');
+  requestAnimationFrame(loop);
+})();
+
+/* navegação: item ativo */
+const links=[...document.querySelectorAll('nav a')];
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+e.target.id))}),{threshold:.5});
+document.querySelectorAll('section').forEach(s=>io.observe(s));
+</script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Liquid Glass Lab · v4 (WebGL)</title>
+<style>
+:root{--alpha:.14;--blur:10px;--glow:.6;--font:-apple-system,BlinkMacSystemFont,"SF Pro Display",Inter,"Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);color:#fff;background:#0a0a1c;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+#gl{position:fixed;inset:0;width:100%;height:100%;z-index:-2;display:block}
+
+/* ===== Vidro: com WebGL, o shader desenha refração/blur; o CSS só cuida de borda, luz e sombra ===== */
+.glass{position:relative;isolation:isolate;border-radius:28px;
+  box-shadow:inset 0 0 22px rgba(255,255,255,calc(.1*var(--glow))),0 14px 34px -14px rgba(0,0,30,.5);
+  transition:transform .5s cubic-bezier(.2,1.2,.3,1.2)}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.2px;pointer-events:none;z-index:2;
+  background:conic-gradient(from calc(var(--ang,315deg) - 45deg),rgba(255,255,255,0),rgba(255,255,255,calc(1*var(--glow))) 45deg,rgba(255,255,255,0) 100deg,rgba(255,255,255,0) 170deg,rgba(255,255,255,calc(.75*var(--glow))) 225deg,rgba(255,255,255,0) 280deg,rgba(255,255,255,0));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:radial-gradient(150px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,calc(.35*var(--glow))),rgba(255,255,255,0) 70%)}
+.glass:hover::after{opacity:1}
+.glass>*{position:relative;z-index:3}
+/* sem WebGL: cai para blur CSS */
+.nogl .glass{background:linear-gradient(135deg,rgba(255,255,255,calc(var(--alpha) + .1)),rgba(255,255,255,var(--alpha)));
+  -webkit-backdrop-filter:blur(var(--blur)) saturate(1.7);backdrop-filter:blur(var(--blur)) saturate(1.7)}
+
+/* ===== Layout ===== */
+nav{position:fixed;top:16px;left:50%;translate:-50% 0;z-index:50;display:flex;gap:4px;padding:6px;border-radius:999px;max-width:calc(100vw - 24px)}
+nav a{color:#fff;text-decoration:none;font-size:14px;font-weight:500;padding:9px 16px;border-radius:999px;white-space:nowrap}
+nav .ind{position:absolute!important;top:6px;bottom:6px;left:6px;width:60px;border-radius:999px;z-index:2!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,.12));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 0 -6px 12px -6px rgba(140,170,255,.5);
+  transition:left .55s cubic-bezier(.3,1.35,.5,1),width .55s cubic-bezier(.3,1.35,.5,1)}
+nav a{position:relative;z-index:4!important}
+section{max-width:1040px;margin:0 auto;padding:110px 20px 40px}
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:18px;padding-top:90px}
+h1{font-size:clamp(44px,9vw,104px);font-weight:700;letter-spacing:-.04em;line-height:1;text-shadow:0 8px 40px rgba(60,40,160,.5)}
+.sub{font-size:clamp(16px,2.2vw,21px);color:rgba(255,255,255,.8);max-width:540px;line-height:1.45}
+h2{font-size:clamp(26px,4vw,38px);letter-spacing:-.03em;margin-bottom:8px}
+.lead{color:rgba(255,255,255,.75);margin-bottom:28px;line-height:1.5}
+.row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.btn{font:600 15px var(--font);color:#fff;border:0;cursor:pointer;padding:14px 26px;border-radius:999px}
+.btn:hover{transform:scale(1.06)}.btn:active{transform:scale(.93)}
+.btn.tint{background:linear-gradient(135deg,rgba(90,140,255,.4),rgba(170,90,255,.25))}
+.btn.round{width:52px;height:52px;padding:0;font-size:20px}
+.panel{border-radius:40px;padding:34px;display:grid;grid-template-columns:1.1fr 1fr;gap:30px}
+.panel h3{font-size:22px;letter-spacing:-.02em;margin-bottom:8px}
+.panel p{color:rgba(255,255,255,.8);line-height:1.5;font-size:15px}
+.ctl{margin-bottom:14px}
+.ctl label{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:6px}
+.ctl output{opacity:.7;font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:9px;background:rgba(255,255,255,.22)}
+input[type=range]::-moz-range-track{height:8px;border-radius:9px;background:rgba(255,255,255,.22)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:38px;height:26px;margin-top:-9px;border-radius:99px;background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(225,235,255,.75));box-shadow:0 4px 12px rgba(0,0,30,.4),inset 0 1px 0 #fff;transition:transform .25s cubic-bezier(.3,1.5,.5,1)}
+input[type=range]::-moz-range-thumb{width:38px;height:26px;border:0;border-radius:99px;background:rgba(255,255,255,.92);box-shadow:0 4px 12px rgba(0,0,30,.4)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
+.stack{position:relative;height:340px}
+.card{position:absolute;border-radius:30px;padding:22px;width:min(260px,70%);height:190px;font-size:14px;color:rgba(255,255,255,.9)}
+.card b{display:block;font-size:18px;margin-bottom:6px;letter-spacing:-.02em}
+.c1{left:4%;top:30px}.c2{left:32%;top:110px}.c3{right:4%;top:20px}
+.card:hover{transform:translateY(-14px) scale(1.04)}
+.stage{position:relative;height:400px;border-radius:40px;border:1px solid rgba(255,255,255,.14);touch-action:none;cursor:none;overflow:hidden}
+.lens{position:absolute;left:0;top:0;width:180px;height:180px;border-radius:999px;pointer-events:none;will-change:transform}
+.hint{position:absolute;bottom:14px;width:100%;text-align:center;font-size:13px;color:rgba(255,255,255,.65)}
+.cmp{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.cm{height:230px;border-radius:28px;padding:20px;display:flex;flex-direction:column;justify-content:flex-end}
+.cm b{font-size:16px}.cm small{font-size:13px;color:rgba(255,255,255,.85);margin-top:4px;line-height:1.4}
+.k1{background:rgba(255,255,255,.3);border-radius:8px;box-shadow:0 3px 10px rgba(0,0,0,.3)}
+.k2{background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.3);box-shadow:0 8px 32px rgba(0,0,0,.25)}
+footer{text-align:center;color:rgba(255,255,255,.5);font-size:13px;padding:60px 20px 120px}
+@media(max-width:760px){.panel{grid-template-columns:1fr;padding:24px}.cmp{grid-template-columns:1fr}.cm{height:150px}
+  .stack{height:520px}.c1{left:2%}.c2{left:14%;top:170px}.c3{right:2%;top:320px}nav a{padding:9px 11px;font-size:13px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<nav class="glass" data-r="999"><span class="ind"></span>
+  <a href="#top" class="on">Início</a><a href="#panel">Painel</a><a href="#cards">Camadas</a><a href="#lens">Lente</a><a href="#cmp">Comparar</a></nav>
+
+<section class="hero" id="top">
+  <h1>Liquid Glass Lab</h1>
+  <p class="sub">Refração real renderizada em WebGL. Funciona em Firefox, Zen, Chrome e Safari.</p>
+  <div class="row">
+    <button class="btn glass" data-r="999">Padrão</button>
+    <button class="btn glass" data-r="999">Cristalino</button>
+    <button class="btn glass tint" data-r="999">Tingido</button>
+    <button class="btn glass round" data-r="999" aria-label="Favorito">♡</button>
+  </div>
+</section>
+
+<section id="panel">
+  <div class="glass panel" data-r="40">
+    <div><h3>Material vivo</h3>
+      <p>Aqui o vidro não depende de filtros do navegador: um shader curva o fundo na borda de cada peça, separa as cores levemente e acende o reflexo do lado onde está o ponteiro.</p></div>
+    <div>
+      <div class="ctl"><label>Transparência <output></output></label><input type="range" id="alpha" min="0" max="45" value="14"></div>
+      <div class="ctl"><label>Desfoque <output></output></label><input type="range" id="blur" min="0" max="40" value="10"></div>
+      <div class="ctl"><label>Brilho <output></output></label><input type="range" id="glow" min="0" max="100" value="60"></div>
+      <div class="ctl"><label>Refração <output></output></label><input type="range" id="refr" min="0" max="100" value="38"></div>
+    </div>
+  </div>
+</section>
+
+<section id="cards">
+  <h2>Camadas</h2><p class="lead">Passe o mouse: os cards sobem e a luz acompanha.</p>
+  <div class="stack">
+    <div class="glass card c1" data-r="30"><b>Superfície</b>Camada mais próxima da luz.</div>
+    <div class="glass card c2" data-r="30"><b>Profundidade</b>A borda curva o que está atrás.</div>
+    <div class="glass card c3" data-r="30"><b>Luz</b>O reflexo muda com o ângulo.</div>
+  </div>
+</section>
+
+<section id="lens">
+  <h2>Lente</h2><p class="lead">Um disco de vidro segue o ponteiro, curvando o texto do fundo.</p>
+  <div class="stage" id="stage"><div class="glass lens" id="lensEl" data-r="999"></div><div class="hint">mova o mouse ou arraste o dedo</div></div>
+</section>
+
+<section id="cmp">
+  <h2>Comparação</h2><p class="lead">Três interpretações sobre o mesmo fundo.</p>
+  <div class="cmp">
+    <div class="cm k1"><b>Vidro convencional</b><small>Cor translúcida plana.</small></div>
+    <div class="cm k2"><b>Glassmorphism</b><small>Blur uniforme e borda fina.</small></div>
+    <div class="cm glass" data-r="28"><b>Liquid Glass</b><small>Refração, dispersão e luz dinâmica.</small></div>
+  </div>
+</section>
+<footer>Liquid Glass Lab · v4</footer>
+
+<script id="vs" type="x-shader/x-vertex">attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}</script>
+<script id="fs" type="x-shader/x-fragment">
+precision highp float;
+uniform vec2 uRes,uM;uniform float uT,uAlpha,uBlur,uGlow,uRefr;uniform int uN;
+uniform vec4 uR[16];uniform float uRad[16];uniform sampler2D uTex;
+
+/* Fundo procedural: tudo que o vidro vai refratar */
+vec3 bg(vec2 p){
+  float m=max(uRes.x,uRes.y);vec2 q=p/m;vec2 uv=p/uRes;
+  vec3 c=vec3(.04,.04,.12);
+  c+=vec3(1.,.36,.64)*exp(-length(q-vec2(.16+.05*sin(uT*.21),.12+.04*cos(uT*.17)))*3.0)*.95;
+  c+=vec3(.2,.55,1.)*exp(-length(q-vec2(.9+.04*cos(uT*.19),.35+.05*sin(uT*.23)))*3.2)*.95;
+  c+=vec3(1.,.7,.28)*exp(-length(q-vec2(.4+.05*sin(uT*.15),.85+.03*cos(uT*.2)))*3.0)*.8;
+  c+=vec3(.5,1.,.5)*exp(-length(q-vec2(.62+.03*cos(uT*.3),.1))*7.)*.5;
+  vec2 g=abs(fract(p/48.)-.5);c+=smoothstep(.45,.5,max(g.x,g.y))*.08;
+  c+=smoothstep(2.,0.,abs(length(p-vec2(.78,.12)*m)-.2*m))*.3;
+  c+=smoothstep(2.,0.,abs(length(p-vec2(.1,.62)*m)-.11*m))*.3;
+  c+=smoothstep(2.,0.,abs(length(p-vec2(.5,.8)*m)-.06*m))*.3;
+  c+=texture2D(uTex,uv).a*.5;
+  return c;
+}
+vec3 samp(vec2 p,float r){
+  vec3 s=vec3(0.);
+  for(int i=0;i<8;i++){float a=float(i)*2.39996;float rr=r*sqrt((float(i)+.5)/8.);s+=bg(p+rr*vec2(cos(a),sin(a)));}
+  return s/8.;
+}
+void main(){
+  vec2 p=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y);
+  vec3 col=bg(p);
+  for(int i=0;i<16;i++){
+    if(i>=uN)break;
+    vec4 R=uR[i];if(R.z<1.)continue;
+    vec2 h=R.zw*.5,c=R.xy+h;float r=min(uRad[i],min(h.x,h.y));
+    vec2 q=abs(p-c)-(h-r);
+    float d=length(max(q,0.))+min(max(q.x,q.y),0.)-r;
+    if(d>1.)continue;
+    vec2 n=(q.x>0.||q.y>0.)?normalize(max(q,0.))*sign(p-c):(q.x>q.y?vec2(sign(p.x-c.x),0.):vec2(0.,sign(p.y-c.y)));
+    float bz=max(6.,.55*min(h.x,h.y));
+    float t=clamp(-d/bz,0.,1.);float mm=pow(1.-t,3.);
+    vec2 ds=n*mm*uRefr;               /* refração: curva só na borda */
+    vec3 g=vec3(samp(p+ds,uBlur).r,samp(p+ds*1.1,uBlur).g,samp(p+ds*1.22,uBlur).b); /* dispersão */
+    g=mix(vec3(dot(g,vec3(.3,.59,.11))),g,1.6);
+    g=mix(g,vec3(1.),uAlpha*.9)+.03;
+    g+=.07*(1.-(p.y-c.y+h.y)/(2.*h.y));
+    vec2 L=normalize(uM-c+vec2(.001));float dl=dot(n,L);
+    float e=pow(1.-t,5.);
+    g+=vec3(pow(max(dl,0.),2.)*e*1.3+pow(max(-dl,0.),2.)*e*.45)*uGlow;
+    g+=pow(1.-t,4.)*.12*uGlow;
+    col=mix(col,g,smoothstep(.8,-.8,d));
+  }
+  gl_FragColor=vec4(col,1.);
+}
+</script>
+
+<script>
+const $=id=>document.getElementById(id),root=document.documentElement;
+const P={alpha:.14,blur:10,glow:.6,refr:38}; // valores em px CSS
+const cv=$('gl'),gl=cv.getContext('webgl',{antialias:false,alpha:false});
+const els=[...document.querySelectorAll('.glass')].slice(0,16);
+let dpr=1,mouse=[-9999,-9999],U={},tex,tcv=document.createElement('canvas'),rad=[];
+
+function sh(t,src){const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(s);return s}
+function initGL(){
+  const pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,$('vs').textContent));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,$('fs').textContent));
+  gl.linkProgram(pr);gl.useProgram(pr);
+  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+  const a=gl.getAttribLocation(pr,'a');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
+  ['uRes','uM','uT','uAlpha','uBlur','uGlow','uRefr','uN','uR','uRad','uTex'].forEach(n=>U[n]=gl.getUniformLocation(pr,n));
+  tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
+  [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER].forEach(k=>gl.texParameteri(gl.TEXTURE_2D,k,gl.LINEAR));
+  [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T].forEach(k=>gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE));
+  gl.uniform1i(U.uTex,0);
+}
+function resize(){
+  dpr=Math.min(devicePixelRatio||1,2);
+  cv.width=Math.round(innerWidth*dpr);cv.height=Math.round(innerHeight*dpr);gl.viewport(0,0,cv.width,cv.height);
+  /* texto nítido do fundo, desenhado em canvas 2D e usado como textura */
+  tcv.width=cv.width;tcv.height=cv.height;const x=tcv.getContext('2d'),W=tcv.width,H=tcv.height;
+  x.clearRect(0,0,W,H);x.lineJoin='round';
+  x.font=`800 ${Math.min(W*.3,H*.4)}px -apple-system,"SF Pro Display",Inter,system-ui,sans-serif`;
+  x.strokeStyle='#fff';x.lineWidth=2*dpr;x.strokeText('Glass',W*.04,H*.55);
+  x.font=`600 ${Math.max(18,W*.022)}px -apple-system,system-ui,sans-serif`;x.fillStyle='rgba(255,255,255,.7)';
+  x.textAlign='right';x.fillText('L I G H T  ·  D E P T H  ·  F L O W',W*.94,H*.9);
+  gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,tcv);
+  rad=els.map(e=>parseFloat(e.dataset.r||28)*dpr);
+}
+const rects=new Float32Array(64);
+function frame(t){
+  els.forEach((e,i)=>{const r=e.getBoundingClientRect();
+    const vis=r.bottom>-50&&r.top<innerHeight+50;
+    rects.set(vis?[r.left*dpr,r.top*dpr,r.width*dpr,r.height*dpr]:[0,0,0,0],i*4);
+    if(vis&&!e.classList.contains('lens')){
+      e.style.setProperty('--mx',(mouse[0]/dpr-r.left)+'px');e.style.setProperty('--my',(mouse[1]/dpr-r.top)+'px');
+      e.style.setProperty('--ang',Math.atan2(mouse[0]/dpr-(r.left+r.width/2),-(mouse[1]/dpr-(r.top+r.height/2)))*180/Math.PI+'deg');}
+  });
+  gl.uniform2f(U.uRes,cv.width,cv.height);gl.uniform2f(U.uM,mouse[0],mouse[1]);gl.uniform1f(U.uT,t/1000);
+  gl.uniform1f(U.uAlpha,P.alpha);gl.uniform1f(U.uBlur,P.blur*dpr*.5);gl.uniform1f(U.uGlow,P.glow);gl.uniform1f(U.uRefr,P.refr*dpr);
+  gl.uniform1i(U.uN,els.length);gl.uniform4fv(U.uR,rects);gl.uniform1fv(U.uRad,new Float32Array(16).map((_,i)=>rad[i]||0));
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  lensStep();requestAnimationFrame(frame);
+}
+
+/* ---- controles ---- */
+const bind=(id,fn,suf='%')=>{const el=$(id),o=el.parentNode.querySelector('output');const u=()=>{fn(+el.value);o.textContent=el.value+suf;
+  root.style.setProperty('--'+id,id==='blur'?el.value+'px':id==='alpha'||id==='glow'?el.value/100:0)};el.addEventListener('input',u);u()};
+bind('alpha',v=>P.alpha=v/100);bind('blur',v=>P.blur=v,'px');bind('glow',v=>P.glow=v/100);bind('refr',v=>P.refr=v*.5);
+
+addEventListener('pointermove',e=>{mouse=[e.clientX*dpr,e.clientY*dpr]});
+
+/* ---- lente com inércia ---- */
+const stage=$('stage'),lens=$('lensEl');let tx=0,ty=0,x=0,y=0,started=false;
+const setT=e=>{const r=stage.getBoundingClientRect();tx=e.clientX-r.left-90;ty=e.clientY-r.top-90;if(!started){x=tx;y=ty;started=true}};
+stage.addEventListener('pointermove',setT);stage.addEventListener('pointerdown',setT);
+function lensStep(){
+  if(!started){const t=performance.now()/1000,r=stage.getBoundingClientRect();tx=r.width/2-90+Math.cos(t)*140;ty=r.height/2-90+Math.sin(t*1.3)*70}
+  const vx=tx-x,vy=ty-y;x+=vx*.14;y+=vy*.14;
+  lens.style.transform=`translate(${x}px,${y}px) scale(${1+Math.min(.16,Math.hypot(vx,vy)/700)})`;
+}
+
+/* ---- nav ---- */
+const links=[...document.querySelectorAll('nav a')],ind=document.querySelector('nav .ind');
+const move=a=>{ind.style.left=a.offsetLeft+'px';ind.style.width=a.offsetWidth+'px'};
+links.forEach(a=>a.addEventListener('click',()=>move(a)));
+new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(a=>{const on=a.getAttribute('href')==='#'+e.target.id;a.classList.toggle('on',on);if(on)move(a)})}),{threshold:.5})
+  .observe(document.getElementById('top'));
+document.querySelectorAll('section').forEach(s=>new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(a=>{const on=a.getAttribute('href')==='#'+s.id;a.classList.toggle('on',on);if(on)move(a)})}),{threshold:.5}).observe(s));
+addEventListener('load',()=>move(links[0]));
+
+/* ---- início (com fallback) ---- */
+try{if(!gl)throw 0;initGL();resize();addEventListener('resize',resize);requestAnimationFrame(frame)}
+catch(err){root.classList.add('nogl');cv.style.display='none';document.body.style.background='radial-gradient(60vmax 60vmax at 15% 10%,#ff5fa2,transparent),radial-gradient(60vmax 60vmax at 90% 40%,#2f8bff,transparent),#10102a';console.warn('WebGL indisponível, usando fallback CSS',err)}
+</script>
+</body>
+</html>
