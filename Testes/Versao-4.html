@@ -27,7 +27,7 @@ body{font-family:var(--font);color:#fff;background:#0a0a1c;min-height:100vh;over
   -webkit-backdrop-filter:blur(var(--blur)) saturate(1.7);backdrop-filter:blur(var(--blur)) saturate(1.7)}
 
 /* ===== Layout ===== */
-nav{position:fixed;top:16px;left:50%;translate:-50% 0;z-index:50;display:flex;gap:4px;padding:6px;border-radius:999px;max-width:calc(100vw - 24px)}
+nav.glass{position:fixed;top:16px;left:50%;translate:-50% 0;z-index:50;display:flex;gap:4px;padding:6px;border-radius:999px;max-width:calc(100vw - 24px)}
 nav a{color:#fff;text-decoration:none;font-size:14px;font-weight:500;padding:9px 16px;border-radius:999px;white-space:nowrap}
 nav .ind{position:absolute!important;top:6px;bottom:6px;left:6px;width:60px;border-radius:999px;z-index:2!important;
   background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,.12));
@@ -41,7 +41,7 @@ h1{font-size:clamp(44px,9vw,104px);font-weight:700;letter-spacing:-.04em;line-he
 h2{font-size:clamp(26px,4vw,38px);letter-spacing:-.03em;margin-bottom:8px}
 .lead{color:rgba(255,255,255,.75);margin-bottom:28px;line-height:1.5}
 .row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
-.btn{font:600 15px var(--font);color:#fff;border:0;cursor:pointer;padding:14px 26px;border-radius:999px}
+.btn{font:600 15px var(--font);color:#fff;background:transparent;border:0;cursor:pointer;padding:14px 26px;border-radius:999px}
 .btn:hover{transform:scale(1.06)}.btn:active{transform:scale(.93)}
 .btn.tint{background:linear-gradient(135deg,rgba(90,140,255,.4),rgba(170,90,255,.25))}
 .btn.round{width:52px;height:52px;padding:0;font-size:20px}
@@ -74,6 +74,21 @@ footer{text-align:center;color:rgba(255,255,255,.5);font-size:13px;padding:60px 
 @media(max-width:760px){.panel{grid-template-columns:1fr;padding:24px}.cmp{grid-template-columns:1fr}.cm{height:150px}
   .stack{height:520px}.c1{left:2%}.c2{left:14%;top:170px}.c3{right:2%;top:320px}nav a{padding:9px 11px;font-size:13px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>
+.version-switcher{position:fixed;right:18px;bottom:18px;z-index:100;color:#fff;font:14px var(--font)}
+.version-switcher summary{list-style:none;cursor:pointer;padding:11px 16px;border:1px solid rgba(255,255,255,.35);border-radius:999px;background:rgba(255,255,255,.18);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,20,.3);font-weight:600}
+.version-switcher summary::-webkit-details-marker{display:none}
+.version-switcher summary::after{content:" +";opacity:.75}
+.version-switcher[open] summary::after{content:" -"}
+.version-switcher__content{position:absolute;right:0;bottom:calc(100% + 10px);width:min(360px,calc(100vw - 32px));max-height:min(65vh,480px);overflow:auto;padding:16px;border:1px solid rgba(255,255,255,.25);border-radius:22px;background:rgba(20,18,48,.94);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 16px 40px rgba(0,0,20,.45)}
+.version-switcher__content h2{font-size:18px;margin:0 0 10px}
+.version-switcher__content ol{list-style:none;display:grid;gap:8px}
+.version-switcher__content a{display:block;padding:10px 12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#fff;text-decoration:none;background:rgba(255,255,255,.06)}
+.version-switcher__content a:hover,.version-switcher__content a[aria-current=page]{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4)}
+.version-switcher__content strong,.version-switcher__content span{display:block}
+.version-switcher__content span{margin-top:3px;color:rgba(255,255,255,.75);font-size:12px;line-height:1.4}
+@media(max-width:760px){.version-switcher{right:12px;bottom:12px}}
 </style>
 </head>
 <body>
@@ -145,9 +160,9 @@ vec3 bg(vec2 p){
   c+=vec3(1.,.7,.28)*exp(-length(q-vec2(.4+.05*sin(uT*.15),.85+.03*cos(uT*.2)))*3.0)*.8;
   c+=vec3(.5,1.,.5)*exp(-length(q-vec2(.62+.03*cos(uT*.3),.1))*7.)*.5;
   vec2 g=abs(fract(p/48.)-.5);c+=smoothstep(.45,.5,max(g.x,g.y))*.08;
-  c+=smoothstep(2.,0.,abs(length(p-vec2(.78,.12)*m)-.2*m))*.3;
-  c+=smoothstep(2.,0.,abs(length(p-vec2(.1,.62)*m)-.11*m))*.3;
-  c+=smoothstep(2.,0.,abs(length(p-vec2(.5,.8)*m)-.06*m))*.3;
+  c+=(1.-smoothstep(0.,2.,abs(length(p-vec2(.78,.12)*m)-.2*m)))*.3;
+  c+=(1.-smoothstep(0.,2.,abs(length(p-vec2(.1,.62)*m)-.11*m)))*.3;
+  c+=(1.-smoothstep(0.,2.,abs(length(p-vec2(.5,.8)*m)-.06*m)))*.3;
   c+=texture2D(uTex,uv).a*.5;
   return c;
 }
@@ -178,7 +193,7 @@ void main(){
     float e=pow(1.-t,5.);
     g+=vec3(pow(max(dl,0.),2.)*e*1.3+pow(max(-dl,0.),2.)*e*.45)*uGlow;
     g+=pow(1.-t,4.)*.12*uGlow;
-    col=mix(col,g,smoothstep(.8,-.8,d));
+    col=mix(col,g,1.-smoothstep(-.8,.8,d));
   }
   gl_FragColor=vec4(col,1.);
 }
@@ -189,7 +204,7 @@ const $=id=>document.getElementById(id),root=document.documentElement;
 const P={alpha:.14,blur:10,glow:.6,refr:38}; // valores em px CSS
 const cv=$('gl'),gl=cv.getContext('webgl',{antialias:false,alpha:false});
 const els=[...document.querySelectorAll('.glass')].slice(0,16);
-let dpr=1,mouse=[-9999,-9999],U={},tex,tcv=document.createElement('canvas'),rad=[];
+let dpr=1,mouse=[-9999,-9999],U={},tex,tcv=document.createElement('canvas');
 
 function sh(t,src){const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(s);return s}
 function initGL(){
@@ -214,20 +229,21 @@ function resize(){
   x.font=`600 ${Math.max(18,W*.022)}px -apple-system,system-ui,sans-serif`;x.fillStyle='rgba(255,255,255,.7)';
   x.textAlign='right';x.fillText('L I G H T  ·  D E P T H  ·  F L O W',W*.94,H*.9);
   gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,tcv);
-  rad=els.map(e=>parseFloat(e.dataset.r||28)*dpr);
 }
-const rects=new Float32Array(64);
+const rects=new Float32Array(64),radii=new Float32Array(16);
 function frame(t){
   els.forEach((e,i)=>{const r=e.getBoundingClientRect();
     const vis=r.bottom>-50&&r.top<innerHeight+50;
     rects.set(vis?[r.left*dpr,r.top*dpr,r.width*dpr,r.height*dpr]:[0,0,0,0],i*4);
+    const sx=e.offsetWidth?r.width/e.offsetWidth:1,sy=e.offsetHeight?r.height/e.offsetHeight:1;
+    radii[i]=parseFloat(e.dataset.r||28)*Math.min(sx,sy)*dpr;
     if(vis&&!e.classList.contains('lens')){
       e.style.setProperty('--mx',(mouse[0]/dpr-r.left)+'px');e.style.setProperty('--my',(mouse[1]/dpr-r.top)+'px');
       e.style.setProperty('--ang',Math.atan2(mouse[0]/dpr-(r.left+r.width/2),-(mouse[1]/dpr-(r.top+r.height/2)))*180/Math.PI+'deg');}
   });
   gl.uniform2f(U.uRes,cv.width,cv.height);gl.uniform2f(U.uM,mouse[0],mouse[1]);gl.uniform1f(U.uT,t/1000);
   gl.uniform1f(U.uAlpha,P.alpha);gl.uniform1f(U.uBlur,P.blur*dpr*.5);gl.uniform1f(U.uGlow,P.glow);gl.uniform1f(U.uRefr,P.refr*dpr);
-  gl.uniform1i(U.uN,els.length);gl.uniform4fv(U.uR,rects);gl.uniform1fv(U.uRad,new Float32Array(16).map((_,i)=>rad[i]||0));
+  gl.uniform1i(U.uN,els.length);gl.uniform4fv(U.uR,rects);gl.uniform1fv(U.uRad,radii);
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   lensStep();requestAnimationFrame(frame);
 }
@@ -262,5 +278,17 @@ addEventListener('load',()=>move(links[0]));
 try{if(!gl)throw 0;initGL();resize();addEventListener('resize',resize);requestAnimationFrame(frame)}
 catch(err){root.classList.add('nogl');cv.style.display='none';document.body.style.background='radial-gradient(60vmax 60vmax at 15% 10%,#ff5fa2,transparent),radial-gradient(60vmax 60vmax at 90% 40%,#2f8bff,transparent),#10102a';console.warn('WebGL indisponível, usando fallback CSS',err)}
 </script>
+<details class="version-switcher">
+  <summary aria-label="Navegar entre as quatro versões">Versões (1-4)</summary>
+  <div class="version-switcher__content">
+    <h2>O que muda em cada versão</h2>
+    <ol>
+      <li><a href="Versao-1.html"><strong>Versão 1</strong><span>Base visual: vidro CSS, controles de transparência/blur, filtro SVG e lente interativa.</span></a></li>
+      <li><a href="Versao-2.html"><strong>Versão 2</strong><span>Motor por elemento: mapas de refração e reflexo gerados em canvas; peças arrastáveis.</span></a></li>
+      <li><a href="Versao-3.html"><strong>Versão 3</strong><span>Refino visual: aberração RGB, luz que acompanha o ponteiro e parallax.</span></a></li>
+      <li><a href="Versao-4.html" aria-current="page"><strong>Versão 4</strong><span>Renderização WebGL: refração e dispersão em shader, com fallback CSS.</span></a></li>
+    </ol>
+  </div>
+</details>
 </body>
 </html>

@@ -150,6 +150,21 @@ footer{text-align:center;color:rgba(255,255,255,.45);font-size:13px;padding:60px
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
+<style>
+.version-switcher{position:fixed;right:18px;bottom:18px;z-index:100;color:#fff;font:14px var(--font)}
+.version-switcher summary{list-style:none;cursor:pointer;padding:11px 16px;border:1px solid rgba(255,255,255,.35);border-radius:999px;background:rgba(255,255,255,.18);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,20,.3);font-weight:600}
+.version-switcher summary::-webkit-details-marker{display:none}
+.version-switcher summary::after{content:" +";opacity:.75}
+.version-switcher[open] summary::after{content:" -"}
+.version-switcher__content{position:absolute;right:0;bottom:calc(100% + 10px);width:min(360px,calc(100vw - 32px));max-height:min(65vh,480px);overflow:auto;padding:16px;border:1px solid rgba(255,255,255,.25);border-radius:22px;background:rgba(20,18,48,.94);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 16px 40px rgba(0,0,20,.45)}
+.version-switcher__content h2{font-size:18px;margin:0 0 10px}
+.version-switcher__content ol{list-style:none;display:grid;gap:8px}
+.version-switcher__content a{display:block;padding:10px 12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#fff;text-decoration:none;background:rgba(255,255,255,.06)}
+.version-switcher__content a:hover,.version-switcher__content a[aria-current=page]{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4)}
+.version-switcher__content strong,.version-switcher__content span{display:block}
+.version-switcher__content span{margin-top:3px;color:rgba(255,255,255,.75);font-size:12px;line-height:1.4}
+@media(max-width:760px){.version-switcher{right:12px;bottom:12px}}
+</style>
 </head>
 <body>
 <div class="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div>
@@ -294,5 +309,17 @@ const links=[...document.querySelectorAll('nav a')];
 const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(a=>{const on=a.getAttribute('href')==='#'+e.target.id;a.classList.toggle('on',on);if(on)moveInd(a)})}),{threshold:.5});
 document.querySelectorAll('section').forEach(s=>io.observe(s));
 </script>
+<details class="version-switcher">
+  <summary aria-label="Navegar entre as quatro versões">Versões (1-4)</summary>
+  <div class="version-switcher__content">
+    <h2>O que muda em cada versão</h2>
+    <ol>
+      <li><a href="Versao-1.html"><strong>Versão 1</strong><span>Base visual: vidro CSS, controles de transparência/blur, filtro SVG e lente interativa.</span></a></li>
+      <li><a href="Versao-2.html"><strong>Versão 2</strong><span>Motor por elemento: mapas de refração e reflexo gerados em canvas; peças arrastáveis.</span></a></li>
+      <li><a href="Versao-3.html" aria-current="page"><strong>Versão 3</strong><span>Refino visual: aberração RGB, luz que acompanha o ponteiro e parallax.</span></a></li>
+      <li><a href="Versao-4.html"><strong>Versão 4</strong><span>Renderização WebGL: refração e dispersão em shader, com fallback CSS.</span></a></li>
+    </ol>
+  </div>
+</details>
 </body>
 </html>
